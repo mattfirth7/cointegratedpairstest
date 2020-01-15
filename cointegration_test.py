@@ -4,51 +4,47 @@ from sklearn.linear_model import LinearRegression
 from statsmodels.tsa.stattools import adfuller
 import matplotlib.pyplot as plt
 
-class CointegrationPair:
-
     
-    def __init__(self, time_series_1, time_series_2):
-        self.np_time_series_1 = np.genfromtxt(time_series_1, delimiter=',', skip_header = 1)
-        self.np_time_series_2 = np.genfromtxt(time_series_2, delimiter=',', skip_header = 1)
-        self.np_time_series_1_returns = np.empty(0)
-        self.np_time_series_2_returns = np.empty(0)
-        self.relationship = 0
-        self.stationary_distr = np.empty(0)
+def gen_log_returns(np_time_series_1, np_time_series_2):
+    np_time_series_1_returns = np.empty(0)
+    np_time_series_2_returns = np.empty(0)
+    for index in range(len(np_time_series_1) - 1):
+        np_time_series_1_returns = np.append(np_time_series_1_returns, (np_time_series_1[index + 1] - np_time_series_1[index]))
     
-    def generate_log_returns(self):
-        for index in range(len(self.np_time_series_1) - 1):
-            self.np_time_series_1_returns = np.append(self.np_time_series_1_returns, (self.np_time_series_1[index + 1] - self.np_time_series_1[index]))
+    for index in range(len(np_time_series_2) - 1):
+        np_time_series_2_returns = np.append(np_time_series_2_returns, (np_time_series_2[index + 1] - np_time_series_2[index]))
+            
+    return np_time_series_1_returns, np_time_series_2_returns
         
-        for index in range(len(self.np_time_series_2) - 1):
-            self.np_time_series_2_returns = np.append(self.np_time_series_2_returns, (self.np_time_series_2[index + 1] - self.np_time_series_2[index]))
+def gen_linear_relationship(np_time_series_1_returns, np_time_series_2_returns):
+    classifier = LinearRegression(n_jobs = -1)
+    classifier.fit(np_time_series_1_returns.reshape(-1,1), np_time_series_2_returns.reshape(-1,1))
         
-    def generate_linear_relationship(self):
-        classifier = LinearRegression(n_jobs = -1)
-        classifier.fit(self.np_time_series_1_returns.reshape(-1,1), self.np_time_series_2_returns.reshape(-1,1))
-        
-        self.relationship = classifier.coef_
+    return classifier.coef_
     
-    def create_stationary_distr(self):
-        stationary_distr = self.np_time_series_2_returns - (self.relationship * self.np_time_series_1_returns)        
-        self.stationary_distr = stationary_distr
+def gen_stationary_distr(np_time_series_1_returns, np_time_series_2_returns, coefficient):
+    stationary_distr = np_time_series_2_returns - (coefficient * np_time_series_1_returns)        
+    return stationary_distr
     
-    def test_stationarity(self):
-        self.generate_log_returns()
-        self.generate_linear_relationship()
-        self.create_stationary_distr()
+def test_stationarity(np_time_series_1, np_time_series_2):
+    np_time_series_1_returns, np_time_series_2_returns = gen_log_returns(np_time_series_1, np_time_series_2)
+    coefficient = gen_linear_relationship(np_time_series_1_returns, np_time_series_2_returns)
+    stationary_distr = gen_stationary_distr(np_time_series_1_returns, np_time_series_2_returns, coefficient)
         
 
-        adf_result = adfuller(self.stationary_distr[0])
-        if adf_result[1] < 0.01:
-            return True, adf_result[1]
-        else:
-            return False
+    adf_result = adfuller(stationary_distr[0])
+    if adf_result[1] < 0.01:
+        return True, adf_result[1]
+    else:
+        return False, adf_result[1]
         
-    def plot(self):
-        plt.plot(self.stationary_distr[0])
-        plt.xlabel("Date")
-        plt.ylabel("Diff in Log Returns")
-        plt.show()
+def plot(stationary_distr):
+    plt.plot(stationary_distr[0])
+    plt.xlabel("Time")
+    plt.ylabel("Diff in Log Returns")
+    plt.show()
+    
+
         
 
     
