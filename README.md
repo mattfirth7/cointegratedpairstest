@@ -1,3 +1,5 @@
+# This package is deprecated. Up to date code can be found under StatArbTools
+
 # Cointegration_Test
 
 cointegration_test is a Python library primarily for determining if a pair of time series are cointegrated.
